@@ -9,8 +9,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#include "zte-dsi-panel-sharp-r63417-1080p-5p5-cmd.dtsi"
-#include "zte-dsi-panel-sharp-r63417-1080p-5p5-video.dtsi"
+#include "nubia-dsi-sharp-panel-nt35595-1080p-5p0-command.dtsi"
+#include "nubia-dsi-sharp-panel-nt35595-1080p-5p0-video.dtsi"
 #include "msm8939-lcd-pinctrl.dtsi"
 
 &soc {
