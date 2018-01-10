@@ -25,7 +25,7 @@
 #include "NX511J/msm8939-mdss-pll.dtsi"
 #include "NX511J/msm8939-mdss.dtsi"
 #include "NX511J/msm8939-mtp-lcd.dtsi"
-#include "NX511J/msm8916-vbus-otg.dtsi"
+#include "NX511J/msm8939-vbus-otg.dtsi"
 #include "NX511J/msm8939-mtp-breathlight.dtsi"
 #include "NX511J/msm8939-mtp-fuelgauge.dtsi"
 #include "NX511J/msm8939-mtp-charger.dtsi"
