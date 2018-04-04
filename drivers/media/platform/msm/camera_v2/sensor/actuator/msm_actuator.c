@@ -17,8 +17,6 @@
 #include "msm_actuator.h"
 #include "msm_cci.h"
 
-#include  "../t4k37_otp.h"
-#include  "../t4k35_otp.h"
 DEFINE_MSM_MUTEX(msm_actuator_mutex);
 
 #undef CDBG
@@ -55,6 +53,11 @@ static int32_t msm_actuator_piezo_set_default_focus(
 	struct msm_camera_i2c_reg_setting reg_setting;
 	CDBG("Enter\n");
 
+	if (a_ctrl->i2c_reg_tbl == NULL) {
+		pr_err("failed. i2c reg tabl is NULL");
+		return -EFAULT;
+	}
+
 	if (a_ctrl->curr_step_pos != 0) {
 		a_ctrl->i2c_tbl_index = 0;
 		a_ctrl->func_tbl->actuator_parse_i2c_params(a_ctrl,
@@ -89,6 +92,21 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 	uint32_t size = a_ctrl->reg_tbl_size, i = 0;
 	struct msm_camera_i2c_reg_array *i2c_tbl = a_ctrl->i2c_reg_tbl;
 	CDBG("Enter\n");
+
+	if (a_ctrl == NULL) {
+		pr_err("failed. actuator ctrl is NULL");
+		return;
+	}
+
+	if (a_ctrl->i2c_reg_tbl == NULL) {
+		pr_err("failed. i2c reg tabl is NULL");
+		return;
+	}
+
+	size = a_ctrl->reg_tbl_size;
+	write_arr = a_ctrl->reg_tbl;
+	i2c_tbl = a_ctrl->i2c_reg_tbl;
+
 	for (i = 0; i < size; i++) {
 		if (write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC) {
 			value = (next_lens_position <<
@@ -262,6 +280,11 @@ static int32_t msm_actuator_piezo_move_focus(
 		return -EFAULT;
 	}
 
+	if (a_ctrl->i2c_reg_tbl == NULL) {
+		pr_err("failed. i2c reg tabl is NULL");
+		return -EFAULT;
+	}
+
 	if (dest_step_position > a_ctrl->total_steps) {
 		pr_err("Step pos greater than total steps = %d\n",
 			dest_step_position);
@@ -330,6 +353,10 @@ static int32_t msm_actuator_move_focus(
 	}
 	if ((dir > MOVE_FAR) || (dir < MOVE_NEAR)) {
 		pr_err("Invalid direction = %d\n", dir);
+		return -EFAULT;
+	}
+	if (a_ctrl->i2c_reg_tbl == NULL) {
+		pr_err("failed. i2c reg tabl is NULL");
 		return -EFAULT;
 	}
 	if (dest_step_pos > a_ctrl->total_steps) {
@@ -624,15 +651,10 @@ static int32_t msm_actuator_set_position(
 	int32_t index;
 	uint16_t next_lens_position;
 	uint16_t delay;
- #if (defined(CONFIG_N958ST_CAMERA) || defined(CONFIG_N918ST_CAMERA))
-	uint32_t hw_params = 0xF400;
-	uint16_t value=0;
-#else	
 	uint32_t hw_params = 0;
 // ZTEMT: fuyipeng add manual AF for imx234  -----start
 	uint16_t value=0;
 // ZTEMT: fuyipeng add manual AF for imx234  -----end
-#endif
 /* ZTEMT: zhanglilang add manual AF compensation for rohm_bu64297gwz  -----start */
       	uint16_t dac_comp = 99; 
 /* ZTEMT: zhanglilang add manual AF compensation for rohm_bu64297gwz  -----end */
@@ -644,18 +666,18 @@ static int32_t msm_actuator_set_position(
 			set_pos->number_of_steps);
 		return -EFAULT;
 	}
-  // ZTEMT: fuyipeng add manual AF for imx234  -----start
-    pr_err("msm_actuator_set_position---act_name:%s \n", a_ctrl->act_name);
-     if(!strncmp(a_ctrl->act_name, "bu64291gwz_t4k37_msm8939", 32)){
-		#define NX511J_V2A_MEX_CAMERA
-		hw_params = 0xF400;
-		value = 0;
+
+	if (!a_ctrl || !a_ctrl->func_tbl ||
+		!a_ctrl->func_tbl->actuator_parse_i2c_params ||
+		!a_ctrl->i2c_reg_tbl) {
+		pr_err("failed. NULL actuator pointers.");
+		return -EFAULT;
 	}
-    if ((!strncmp(a_ctrl->act_name, "rohm_bu64297gwz", 32)) || (!strncmp(a_ctrl->act_name, "imx214_sunny_c1507", 32)))
-    {
-  	  hw_params = 0xF400;
-    }
-    // ZTEMT: fuyipeng add manual AF for imx234  -----end
+
+	if (a_ctrl->actuator_state != ACTUATOR_POWER_UP) {
+		pr_err("failed. Invalid actuator state.");
+		return -EFAULT;
+	}
 
 	a_ctrl->i2c_tbl_index = 0;
 	for (index = 0; index < set_pos->number_of_steps; index++) {
@@ -689,39 +711,6 @@ static int32_t msm_actuator_set_position(
 			// ZTEMT: fuyipeng add manual AF for imx234  -----end
 		}
 
- #if (defined(CONFIG_N958ST_CAMERA) || defined(CONFIG_N918ST_CAMERA)||defined(NX511J_V2A_MEX_CAMERA))
-         value = set_pos->pos[index];
-        if(value < 0 || value > 79){     /* if over total steps*/
-            pr_err("%s Failed I2C write Line %d\n", __func__, __LINE__);
-                return rc;
-         }
- 	 dac_comp = 77;
-        value = 79 - value;
-
-        if(value == 79){
-    		if((af_otp_status==1)&&(af_macro_value>af_inifity_value))
-    		   next_lens_position= af_macro_value+150;
-    		else if ((t4k35_af_otp_status == 1) && (t4k35_af_macro_value > t4k35_af_inifity_value))
-    		{
-    		    next_lens_position= t4k35_af_macro_value + 150;
-    		}
-    		else
-    		   next_lens_position = 800;
-            a_ctrl->curr_step_pos = a_ctrl->region_params[a_ctrl->region_size - 1].step_bound[MOVE_NEAR] - 3;
-        }else{
-             if((af_otp_status==1)&&(af_macro_value>af_inifity_value))
-		        a_ctrl->step_position_table[0]= af_inifity_value -150;
-			 else if ((t4k35_af_otp_status == 1) && (t4k35_af_macro_value > t4k35_af_inifity_value))
-			 {
-			     a_ctrl->step_position_table[0]= t4k35_af_inifity_value - 100;
-			 }
-            next_lens_position = a_ctrl->step_position_table[0] + 7*value + dac_comp;
-			a_ctrl->curr_step_pos = next_lens_position - a_ctrl->step_position_table[0];
-        }
-    //    pr_err(" jun value = %d, af_macro_value=%d,af_inifity_value = %d,af_otp_status = %d\n",  
-	//		                                                         value,af_macro_value,af_inifity_value,af_otp_status);
-        pr_err(" jun next_lens_position = %d, cur_step_pos=%d\n",  next_lens_position,a_ctrl->curr_step_pos);		
- #endif
 		a_ctrl->func_tbl->actuator_parse_i2c_params(a_ctrl,
 		next_lens_position, hw_params, delay);
 
@@ -777,13 +766,13 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 
 	a_ctrl->region_size = set_info->af_tuning_params.region_size;
 	a_ctrl->pwd_step = set_info->af_tuning_params.pwd_step;
-	a_ctrl->total_steps = set_info->af_tuning_params.total_steps;
 
 	if (copy_from_user(&a_ctrl->region_params,
 		(void *)set_info->af_tuning_params.region_params,
-		a_ctrl->region_size * sizeof(struct region_params_t)))
+		a_ctrl->region_size * sizeof(struct region_params_t))) {
+		pr_err("Error copying region_params\n");
 		return -EFAULT;
-
+	}
 	if (a_ctrl->act_device_type == MSM_CAMERA_PLATFORM_DEVICE) {
 		cci_client = a_ctrl->i2c_client.cci_client;
 		cci_client->sid =
@@ -811,6 +800,7 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 		(a_ctrl->i2c_reg_tbl != NULL)) {
 		kfree(a_ctrl->i2c_reg_tbl);
 	}
+
 	a_ctrl->i2c_reg_tbl = NULL;
 	a_ctrl->i2c_reg_tbl =
 		kzalloc(sizeof(struct msm_camera_i2c_reg_array) *
@@ -819,6 +809,8 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 		pr_err("kzalloc fail\n");
 		return -ENOMEM;
 	}
+
+	a_ctrl->total_steps = set_info->af_tuning_params.total_steps;
 
 	if (copy_from_user(&a_ctrl->reg_tbl,
 		(void *)set_info->actuator_params.reg_tbl_params,
