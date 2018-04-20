@@ -97,7 +97,6 @@ static struct sensors_classdev sensors_light_cdev = {
 	.delay_msec = 500,
 	.sensors_enable = NULL,
 	.sensors_poll_delay = NULL,
-	.flags = 2,
 };
 
 static struct sensors_classdev sensors_proximity_cdev = {
@@ -116,7 +115,6 @@ static struct sensors_classdev sensors_proximity_cdev = {
 	.delay_msec = 100,
 	.sensors_enable = NULL,
 	.sensors_poll_delay = NULL,
-	.flags = 3,
 };
 
 /* function implementation */
@@ -3103,13 +3101,13 @@ static int tmd2772_probe(struct i2c_client *clientp, const struct i2c_device_id 
 	taos_data->ps_cdev.sensors_enable = tmd2772_ps_set_enable;
 	taos_data->ps_cdev.sensors_poll_delay = NULL;
 
-	ret = sensors_classdev_register(&taos_data->a_idev->dev, &taos_data->als_cdev);
+	ret = sensors_classdev_register(&clientp->dev, &taos_data->als_cdev);
 	if (ret) {
 		SENSOR_LOG_ERROR("register to sensor class failed: %d\n", ret);
 		goto als_sensor_register_failed;
 	}
 
-	ret = sensors_classdev_register(&taos_data->p_idev->dev, &taos_data->ps_cdev);
+	ret = sensors_classdev_register(&clientp->dev, &taos_data->ps_cdev);
 	if (ret) {
 		SENSOR_LOG_ERROR("register to sensor class failed: %d\n", ret);
 		goto classdev_register_failed;

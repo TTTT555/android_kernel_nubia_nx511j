@@ -1,6 +1,5 @@
 /* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
  * only version 2 as published by the Free Software Foundation.
@@ -59,18 +58,17 @@
 			};
 		};
 
-		akm_reset_pin {
+		ak09911_int_pin {
 			qcom,pins = <&gp 69>;
 			qcom,pin-func = <0>;
 			qcom,num-grp-pins = <1>;
-			label = "akm_reset_pin";
-			akm_default: akm_default {
+			label = "ak09911-reset";
+			ak09911_default: ak09911_default {
 				drive-strength = <6>;
 				bias-pull-up;
 			};
-			akm_sleep: akm_sleep {
-				drive-strength = <2>;
-				bias-pull-down;
+			ak09911_sleep: ak09911_sleep {
+				bias-high-impedance;
 			};
 		};
 
